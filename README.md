@@ -123,6 +123,8 @@ The relative paths resolve from the coordinating skill's directory. Package both
 
 The coordinated workflow has explicit handoffs:
 
+![Workflow: the coordinator guides summarization and review using the original source and draft, then returns a checked summary.](assets/multi-skill-workflow.svg)
+
 ```text
 User's source text
         │

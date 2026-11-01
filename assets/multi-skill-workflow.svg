@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="590" viewBox="0 0 960 590" role="img" aria-labelledby="title desc">
+  <title id="title">How three skills work together</title>
+  <desc id="desc">A coordinator guides summarization and review. Source text is passed to both skills, the draft goes to the review, and the coordinator delivers a checked summary.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7484a8"/></marker>
+  </defs>
+  <rect width="960" height="590" rx="24" fill="#0f172a"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="Arial, sans-serif" font-size="28" font-weight="700">How skills work together</text>
+  <text x="48" y="87" fill="#aab8d1" font-family="Arial, sans-serif" font-size="16">A document assistant with a clear handoff at each step</text>
+
+  <rect x="48" y="116" width="864" height="54" rx="12" fill="#1e293b" stroke="#475569"/>
+  <text x="72" y="150" fill="#c4b5fd" font-family="Arial, sans-serif" font-size="16" font-weight="700">COORDINATOR</text>
+  <text x="228" y="150" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="16">summarize-and-review  ·  guides the workflow and checks the result</text>
+
+  <rect x="55" y="228" width="225" height="116" rx="16" fill="#1e293b" stroke="#475569"/>
+  <text x="77" y="259" fill="#94a3b8" font-family="Arial, sans-serif" font-size="13" font-weight="700">INPUT</text>
+  <text x="77" y="289" fill="#f8fafc" font-family="Arial, sans-serif" font-size="20" font-weight="700">Source text</text>
+  <text x="77" y="316" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14">Provided by the user</text>
+
+  <rect x="367" y="228" width="225" height="116" rx="16" fill="#172554" stroke="#60a5fa"/>
+  <text x="389" y="259" fill="#93c5fd" font-family="Arial, sans-serif" font-size="13" font-weight="700">SKILL 1</text>
+  <text x="389" y="289" fill="#f8fafc" font-family="Arial, sans-serif" font-size="20" font-weight="700">Summarize</text>
+  <text x="389" y="316" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14">Create a draft summary</text>
+
+  <rect x="680" y="228" width="225" height="116" rx="16" fill="#2e1d49" stroke="#c084fc"/>
+  <text x="702" y="259" fill="#d8b4fe" font-family="Arial, sans-serif" font-size="13" font-weight="700">SKILL 2</text>
+  <text x="702" y="289" fill="#f8fafc" font-family="Arial, sans-serif" font-size="20" font-weight="700">Review</text>
+  <text x="702" y="316" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14">Compare draft with source</text>
+
+  <path d="M 280 286 H 359" fill="none" stroke="#7484a8" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 592 286 H 672" fill="none" stroke="#7484a8" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="603" y="270" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="13">draft</text>
+  <path d="M 168 344 V 384 H 792 V 352" fill="none" stroke="#7484a8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="397" y="371" width="165" height="26" rx="13" fill="#0f172a"/>
+  <text x="411" y="389" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="13">original source text</text>
+
+  <path d="M 792 384 V 445 H 653" fill="none" stroke="#7484a8" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="808" y="423" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="13">findings</text>
+  <rect x="275" y="417" width="370" height="64" rx="14" fill="#123a35" stroke="#34d399"/>
+  <text x="460" y="445" text-anchor="middle" fill="#d1fae5" font-family="Arial, sans-serif" font-size="17" font-weight="700">Coordinator revises and checks</text>
+  <text x="460" y="467" text-anchor="middle" fill="#a7f3d0" font-family="Arial, sans-serif" font-size="14">Final summary + limitations</text>
+  <text x="48" y="548" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">The same agent may perform every step; review is not an independent audit.</text>
+</svg>
