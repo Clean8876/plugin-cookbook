@@ -1,139 +1,204 @@
-# Plugin Cookbook: Build Your First Agent Plugin
+# Plugin Cookbook
 
-A practical guide to turning a useful AI workflow into a clear, reusable plugin for Codex and Claude Code.
+A practical guide to designing, building, testing, and sharing agent plugins with one or more skills. Learn when to split a workflow and how multiple skills can work together.
 
-This guide grew out of building [ShowVilla](https://github.com/Clean8876/ShowMeStory), a storytelling skill that produces short, five-panel comic-style text retellings. The same approach can help you package workflows for writing, research, reviews, and everyday work.
+This guide uses a document-review plugin as an example, with packaging instructions for Codex and Claude Code. Create the example files in a separate working directory. Host capabilities and installation steps can change, so check the linked official documentation for your version.
 
-This repository contains a tutorial, not an installable plugin. Create the example files below in a separate working directory to follow along.
+## Understand the building blocks
 
-## 1. Start with one useful job
+| Term | What it does | When to use it |
+| --- | --- | --- |
+| **Skill** | Provides instructions for a specific workflow. | You want an agent to repeat a task consistently. |
+| **Plugin** | Packages related skills and, depending on the host, other components. | You want to install, share, or version capabilities together. |
+| **Marketplace** | Lists plugins and where to find them. | You want to distribute plugins through a catalog. |
+| **MCP server** | Exposes tools or data to a compatible host. | Your workflow needs an external service or capability. |
 
-Write down what the user gives you and what they should receive.
+A skill is guidance, not an executable guarantee. A plugin does not automatically add browsing, credentials, or an MCP server. Capabilities and installation differ by host. See the [OpenAI skills guide](https://developers.openai.com/plugins/build/skills) and [Claude Code plugin overview](https://code.claude.com/docs/en/plugins).
 
-For example:
+## Design your plugin
 
-> Given a story summary, return a five-panel text retelling that preserves the supplied facts and ends with a short recap.
+Describe the outcome in one sentence, then define:
 
-Before writing instructions, answer four questions:
+1. **User and trigger:** Who needs this, and what will they ask?
+2. **Input:** What is required? What is optional?
+3. **Output:** What should the agent return or produce?
+4. **Boundaries:** What must it avoid inventing, changing, or doing without authorization?
+5. **Dependencies:** Does the host have the required tools and access?
+6. **Success:** How will you tell whether the result is useful and correct?
 
-- Who will use this?
-- What task will they repeat?
-- What does a good result look like?
-- What should happen when information is missing?
+For this guide, we will build **Document Assistant**. It summarizes user-provided text, reviews a summary against its source, or does both. This example requires no server or API key of its own.
 
-Keep the first version small enough that another person can understand it from one example.
+## Decide how many skills you need
 
-## 2. Understand the pieces
+Start with one skill when a task has one clear trigger and a short, coherent sequence. Split it when parts have different triggers, inputs, responsibilities, or outputs, or when users benefit from running them independently.
 
-| Piece | Purpose |
+| Situation | A useful structure |
 | --- | --- |
-| Skill | Instructions that describe how to perform a task. |
-| Plugin | An installable package that can bundle skills and other components. |
-| Marketplace | A catalog that tells a host where to find plugins. |
-| MCP server | A tool integration for accessing data or performing actions. |
+| One short task that is always performed together | One skill. |
+| Users sometimes need a summary and sometimes a review of an existing summary | Two focused skills, each usable on its own. |
+| Users often request a summary **and** review together | Two focused skills plus a coordinating workflow. |
+| Long policies or examples support one skill but aren't useful alone | Put them in `references/` instead of creating another skill. |
+| A workflow needs live data or an external action | Connect a suitable tool when supported; keep workflow instructions in the skill. |
 
-A writing workflow may only need a skill. Add tools when the job requires capabilities the host does not already provide. A plugin does not automatically supply browsing, accounts, or API access.
+More skills mean more handoffs and more behavior to test. Give each skill a clear purpose instead of splitting solely to increase the count.
 
-See the [Claude Code plugin overview](https://code.claude.com/docs/en/plugins) for the components supported by that host.
+## Build a multi-skill plugin
 
-## 3. Write a focused skill
+Create this layout. Add the marketplace files later if you want to distribute through those hosts:
 
-Create `skills/tell-story/SKILL.md` inside your example plugin folder:
+```text
+document-assistant-marketplace/
+├── .agents/plugins/marketplace.json           # Codex/ChatGPT catalog
+├── .claude-plugin/marketplace.json            # Claude Code catalog
+└── plugins/
+    └── document-assistant/
+        ├── plugin.json                        # OpenAI portable manifest
+        ├── .claude-plugin/plugin.json         # Claude Code manifest
+        └── skills/
+            ├── summarize-document/SKILL.md
+            ├── review-summary/SKILL.md
+            └── summarize-and-review/SKILL.md
+```
+
+Each `SKILL.md` starts with YAML metadata containing a name and description. The description explains when the skill is relevant; the body explains what to do. Explicit user requirements and higher-priority host instructions take precedence over skill guidance.
+
+### Skill 1: Summarize supplied text
+
+Create `plugins/document-assistant/skills/summarize-document/SKILL.md`:
 
 ```markdown
 ---
-name: tell-story
-description: Turn a supplied story summary into a five-panel text retelling. Use when the user requests a comic-style version of their summary.
+name: summarize-document
+description: Summarize user-provided text. Use when asked for a concise document or passage summary.
 ---
 
-1. Read the supplied summary. If it is missing, ask for one.
-2. Use only facts in that summary. Do not invent events or endings.
-3. Write exactly five short panels with a heading for each.
-4. Add a three-line TLDR after the panels.
-5. Check the panel count and factual consistency before answering.
-
-These instructions guide the default workflow; follow applicable
-system instructions and the user's explicit requirements.
+1. Use the source text supplied or made accessible by the user.
+2. If no source is available, ask the user for it.
+3. Summarize the main points in plain language.
+4. Preserve important qualifications. Do not add facts or guesses.
+5. If the source is incomplete or unclear, say so.
 ```
 
-The description explains when to use the skill; the body gives the procedure. Keep detailed examples in linked files under `references/` as the workflow grows. See [OpenAI's skill authoring guide](https://developers.openai.com/plugins/build/skills).
+### Skill 2: Review an existing summary
 
-The example handles supplied summaries only. Supporting a show title requires a separate research workflow and working access to reliable sources.
+Create `plugins/document-assistant/skills/review-summary/SKILL.md`:
 
-## 4. Make the workflow easy to follow
+```markdown
+---
+name: review-summary
+description: Compare an existing summary with its source. Use when asked to check a summary for accuracy, omissions, or unsupported claims.
+---
 
-Use concrete instructions:
+1. Obtain both the source and the summary. Ask for whichever is missing.
+2. Compare the summary with the source, including qualifications.
+3. Report concrete unsupported claims, inaccuracies, and important omissions.
+4. Identify the relevant source and summary text for each finding.
+5. If there are no findings, say no issues were found in this review.
+6. If the source is incomplete, explain the limit of the review.
+```
 
-| Vague | Clear |
-| --- | --- |
-| Make it interesting. | Use short paragraphs and finish with an unresolved question supported by the summary. |
-| Be accurate. | Use only supplied facts; ask when essential information is missing. |
-| Check your answer. | Confirm there are five panels and no added events. |
-| Use the tools. | Name the required tool, explain when to call it, and describe what to do if it fails. |
+These are independent: a user can ask for a summary alone, or provide a source and existing summary for review.
 
-Avoid conflicting rules. For example, “always include a shocking twist” conflicts with “never invent events” when the source contains no twist. Define which requirement takes priority or remove the conflict.
+### Skill 3: Coordinate both tasks
 
-## 5. Package for the host you intend to support
+Create `plugins/document-assistant/skills/summarize-and-review/SKILL.md`:
 
-Use this layout for the walkthrough:
+```markdown
+---
+name: summarize-and-review
+description: Summarize user-provided text and check the summary against its source. Use when the user asks for both a summary and an accuracy review.
+---
+
+1. Obtain the source text. If unavailable, ask the user for it.
+2. Read ../summarize-document/SKILL.md and follow its workflow to draft a summary.
+3. Read ../review-summary/SKILL.md and apply its workflow to the source and draft.
+4. Fix supported findings, then check the revised summary against the source.
+5. Return the final summary and a brief note on unresolved limitations.
+6. Do not claim a separate tool, model, or person performed the review.
+```
+
+The relative paths resolve from the coordinating skill's directory. Package both sibling files with it. Test file access in each host you support.
+
+## Make skills work together
+
+The coordinated workflow has explicit handoffs:
 
 ```text
-your-marketplace/
-├── plugins/
-│   └── story-helper/
-│       ├── plugin.json
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       └── skills/
-│           └── tell-story/
-│               └── SKILL.md
-└── README.md
+User's source text
+        │
+        ▼
+summarize-document ──► draft summary
+                             │
+User's source text ──────────┤
+                             ▼
+                      review-summary ──► findings
+                             │
+                             ▼
+               revised summary + limitations
 ```
 
-For the OpenAI portable format, save this as `plugins/story-helper/plugin.json`:
+The coordinator specifies which instructions to read, their order, and what moves between stages. Here the review receives the original source and draft, and returns findings. The coordinator fixes supported problems and checks again.
+
+**Reading a skill file is not necessarily the same as invoking a separately registered skill.** Hosts differ in discovery, invocation, file access, and tool support. This example uses explicit file references; it does not assume a universal cross-skill invocation syntax. If your host supports named invocation, consult its documentation and test that mechanism separately.
+
+The same agent may perform both stages. Treat its review as a useful check, not an independent audit or guarantee of accuracy.
+
+For each handoff, define the order, inputs, outputs, missing-data behavior, and completion criteria. Avoid circular instructions, such as skill A always calling B while B always calls A. Keep descriptions specific enough that unrelated skills do not overlap.
+
+## Package and test locally
+
+### Add manifests
+
+For the OpenAI portable format, create `plugins/document-assistant/plugin.json`:
 
 ```json
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "story-helper",
+  "name": "document-assistant",
   "version": "0.1.0",
-  "description": "Turn supplied summaries into five-panel text retellings."
+  "description": "Summarize supplied text and review summaries against their sources."
 }
 ```
 
-For Claude Code, save this as `plugins/story-helper/.claude-plugin/plugin.json`:
+For Claude Code, create `plugins/document-assistant/.claude-plugin/plugin.json`:
 
 ```json
 {
-  "name": "story-helper",
+  "name": "document-assistant",
   "version": "0.1.0",
-  "description": "Turn supplied summaries into five-panel text retellings."
+  "description": "Summarize supplied text and review summaries against their sources."
 }
 ```
 
-These manifests serve different hosts. Keep shared metadata consistent and test each host separately. See [OpenAI packaging](https://developers.openai.com/plugins/build/plugins) and [Claude Code plugin creation](https://code.claude.com/docs/en/plugins/create).
+These manifests serve different hosts; keep names and versions consistent. Components remain under the plugin root. See [OpenAI packaging](https://developers.openai.com/plugins/build/plugins) and [Claude Code plugin creation](https://code.claude.com/docs/en/plugins/create).
 
-## 6. Try it locally
+### Try it in Claude Code
 
-From `your-marketplace/`, validate and load the example in Claude Code:
+With Claude Code installed and signed in, run these commands from `document-assistant-marketplace/`:
 
 ```sh
-claude plugin validate ./plugins/story-helper
-claude --plugin-dir ./plugins/story-helper
+claude plugin validate ./plugins/document-assistant
+claude --plugin-dir ./plugins/document-assistant
 ```
 
-In that session, enter:
+In the new session, try the coordinator explicitly:
 
 ```text
-/story-helper:tell-story
+/document-assistant:summarize-and-review
 
-A courier must deliver a letter before sunset. A flooded bridge blocks
-the road. She can wait for the water to fall or look for another crossing.
+Source: The library will close at 5 p.m. on Friday for maintenance.
+It will reopen at 9 a.m. on Saturday. Online services remain available.
 ```
 
-Inspect what the agent actually returns. A valid manifest confirms packaging checks, not writing quality. See [Claude Code's local testing instructions](https://code.claude.com/docs/en/plugins/create).
+Check that the result preserves the closing time, reopening time, and online-service qualification. Then try `/document-assistant:summarize-document` and `/document-assistant:review-summary` separately. A valid manifest checks packaging, not behavior. See [Claude Code's local testing guide](https://code.claude.com/docs/en/plugins/create).
 
-## 7. Add a marketplace when you are ready to distribute
+### Try it in Codex and ChatGPT desktop
+
+Set up the OpenAI marketplace below, install the plugin through the Plugins Directory, and start a new chat. Select the plugin, then ask it to summarize and review the same source. Confirm the coordinator can access both sibling skill files. Availability and UI vary by host and account. See [OpenAI's marketplace guide](https://developers.openai.com/plugins/build/plugins).
+
+## Share through a marketplace
+
+A marketplace is optional for development but useful for distribution. The two catalog formats are separate; use the one required by your target host. Paths are relative to the marketplace root.
 
 ### Codex and ChatGPT desktop
 
@@ -141,13 +206,13 @@ Create `.agents/plugins/marketplace.json` at the marketplace root:
 
 ```json
 {
-  "name": "story-helper-local",
+  "name": "document-assistant-local",
   "plugins": [
     {
-      "name": "story-helper",
+      "name": "document-assistant",
       "source": {
         "source": "local",
-        "path": "./plugins/story-helper"
+        "path": "./plugins/document-assistant"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -159,13 +224,13 @@ Create `.agents/plugins/marketplace.json` at the marketplace root:
 }
 ```
 
-From the marketplace root:
+From the marketplace root, register it:
 
 ```sh
 codex plugin marketplace add .
 ```
 
-Restart ChatGPT desktop, select the marketplace in the Plugins Directory, install the plugin, and test in a new chat. Availability depends on the host and account. See [OpenAI's marketplace instructions](https://developers.openai.com/plugins/build/plugins).
+Restart ChatGPT desktop, select the marketplace in the Plugins Directory, install the plugin, and start a new chat. Check [OpenAI's packaging instructions](https://developers.openai.com/plugins/build/plugins) for current details.
 
 ### Claude Code
 
@@ -173,12 +238,12 @@ Create `.claude-plugin/marketplace.json` at the marketplace root:
 
 ```json
 {
-  "name": "story-helper-local",
+  "name": "document-assistant-local",
   "owner": { "name": "Your Name" },
   "plugins": [
     {
-      "name": "story-helper",
-      "source": "./plugins/story-helper"
+      "name": "document-assistant",
+      "source": "./plugins/document-assistant"
     }
   ]
 }
@@ -189,53 +254,42 @@ Replace `Your Name` with your author or organization name. From the marketplace 
 ```sh
 claude plugin validate .
 claude plugin marketplace add .
-claude plugin install story-helper@story-helper-local
+claude plugin install document-assistant@document-assistant-local
 ```
 
-After publishing the marketplace repository, users can register it with `claude plugin marketplace add OWNER/REPO`, replacing `OWNER/REPO` with its actual GitHub path. See [Claude Code's marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces).
+After publishing your marketplace repository, users can register it with `claude plugin marketplace add OWNER/REPO`, replacing `OWNER/REPO` with its GitHub path. See [Claude Code's marketplace documentation](https://code.claude.com/docs/en/plugin-marketplaces).
 
-## 8. Test behavior before announcing support
+## Test the behavior
 
-Record expected and observed behavior for a few meaningful cases:
+Test each skill alone and the coordinated workflow on every supported host. Save the input, expected behavior, observed output, host, and test date.
 
-| Input | What to check |
+| Case | Expected behavior |
 | --- | --- |
-| A complete summary | Five panels, a TLDR, and no invented facts. |
-| No summary | Requests the missing summary. |
-| A one-sentence summary | Keeps the result light without adding a plot. |
-| A summary with no ending | Does not invent an outcome. |
-| A request for an illustrated image | Explains this example produces text. |
-| A show title without a summary | Requests a summary rather than pretending to research it. |
+| Source with an important qualification | Summary preserves the qualification. |
+| No source text | The relevant skill asks for it. |
+| Review requested with a source but no summary | Review skill asks for the missing summary. |
+| Deliberately inaccurate summary | Review identifies the error and points to the source. |
+| Source and accurate summary | Review reports no issues found, without promising perfection. |
+| Summary and review requested together | Coordinator drafts, checks, revises if needed, and reports limitations. |
+| Referenced skill file unavailable | Workflow reports the limitation instead of claiming success. |
+| User requests only a summary | Plugin does not require a review unless requested. |
 
-Save a few real inputs and outputs with the host and test date. When something fails, identify the ambiguous instruction, change it, and rerun the affected examples.
+Run varied examples, including unclear or incomplete inputs. Fix ambiguous instructions and rerun affected cases. A self-check or successful JSON validation does not prove correctness.
 
-Keep packaging checks separate from behavioral checks. An agent's self-review can help, but it does not guarantee correct facts or perfect instruction following.
+## Publish a useful repository
 
-## 9. Prepare a professional GitHub release
+Include the information a new user needs:
 
-Make the README useful to someone who has never seen your project:
+- What the plugin does, intended inputs, and an example output.
+- Supported hosts and the versions or environments actually tested.
+- Installation, invocation, configuration, and required permissions.
+- Dependencies, external services, and any associated costs.
+- Known limitations, troubleshooting, and a way to report issues.
+- A license, changelog, and clear versioning policy.
 
-- Explain the problem and show one real input/output example.
-- Provide exact installation steps for each supported host.
-- State which hosts you tested and which remain untested.
-- Describe required tools, accounts, and any external costs.
-- Include screenshots of actual behavior with readable text.
-- Choose a license and add the corresponding license file.
-- Keep a changelog and a way to report issues.
+Never commit API keys or access tokens. Publishing a repository and submitting a plugin to a host's public directory are separate actions. Follow each host's current requirements.
 
-If your plugin is free, distinguish the plugin's price from the cost of an AI subscription or external service. If it produces text, describe that clearly in screenshots and marketing.
-
-Publishing on GitHub and being listed in a host's public plugin directory are separate steps. Follow the host's current submission process if you want a public listing.
-
-## A real example: ShowVilla
-
-[ShowVilla](https://github.com/Clean8876/ShowMeStory) organizes its workflow around separate guides for research, spoiler limits, comic formatting, and review. This keeps the entry-point instructions readable while preserving detailed guidance for each stage.
-
-For your own plugin, start with one task, one clear input, and one output you can evaluate. Expand when actual use shows what is missing.
-
-## Documentation and verification
-
-Documentation reviewed on **November 1, 2026**:
+## Official references
 
 - [OpenAI: Build skills](https://developers.openai.com/plugins/build/skills)
 - [OpenAI: Package your plugin](https://developers.openai.com/plugins/build/plugins)
@@ -243,4 +297,4 @@ Documentation reviewed on **November 1, 2026**:
 - [Claude Code: Create a plugin](https://code.claude.com/docs/en/plugins/create)
 - [Claude Code: Create a marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
 
-The examples are documentation examples, not a claim of completed installation tests. Check the current official documentation when using another host or version.
+The sample files are instructional examples. This guide does not claim that this exact multi-skill example has been installed and tested in every host.
